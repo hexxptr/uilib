@@ -160,6 +160,62 @@ function lib.new(style: string?, title: string?, textSize: number?)
     return self
 end
 
+function lib:SetDraggable(state: boolean)
+    if self.dragConnection then
+        self.dragConnection:Disconnect()
+        self.dragConnection = nil
+    end
+    if self.dragBeginConnection then
+        self.dragBeginConnection:Disconnect()
+        self.dragBeginConnection = nil
+    end
+    if self.dragEndConnection then
+        self.dragEndConnection:Disconnect()
+        self.dragEndConnection = nil
+    end
+
+    self.draggable = state
+    if not state then
+        return
+    end
+
+    local UserInputService = game:GetService("UserInputService")
+    local dragging = false
+    local dragStart
+    local startPos
+
+    self.dragBeginConnection = self.Header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = self.Main.Position
+        end
+    end)
+
+    self.dragEndConnection = self.Header.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    self.dragConnection = UserInputService.InputChanged:Connect(function(input)
+        if not dragging then
+            return
+        end
+        if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
+
+        local delta = input.Position - dragStart
+        self.Main.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+        )
+    end)
+end
 
 function lib:Destroy()
     for _, conn in ipairs(self.connections) do
